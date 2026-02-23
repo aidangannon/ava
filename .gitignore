@@ -1,2 +1,10 @@
-# venv
-venv
+# python
+.venv/
+.env
+__pycache__/
+*.pyc
+
+# deploy
+.terraform/
+*.tfstate
+lambda.zip

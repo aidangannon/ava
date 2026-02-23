@@ -1,0 +1,21 @@
+name: cd
+on:
+  push:
+    branches: [main]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
+          aws-region: eu-west-1
+      - name: terraform apply
+        working-directory: ./ava_glue
+        env:
+          TF_VAR_github_thumbprint: ${{ secrets.GITHUB_OIDC_THUMBPRINT }}|
+        run: |
+          terraform init
+          terraform apply -auto-approve
