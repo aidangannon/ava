@@ -109,6 +109,7 @@ resource "aws_iam_role_policy" "github_actions" {
         "apigatewayv2:*",
         "sqs:*",
         "logs:*",
+        "sts:AssumeRoleWithWebIdentity",
         "iam:GetRole",
         "iam:CreateRole",
         "iam:DeleteRole",
