@@ -2,6 +2,12 @@ terraform {
   required_providers {
     aws = { source = "hashicorp/aws", version = "~> 5.0" }
   }
+
+  backend "s3" {
+    bucket = "ava-glue-tf"
+    key    = "ava-glue/terraform.tfstate"
+    region = "eu-west-1"
+  }
 }
 
 provider "aws" {
@@ -31,6 +37,10 @@ resource "aws_lambda_function" "handler" {
   environment {
     variables = { QUEUE_URL = aws_sqs_queue.messages.url }
   }
+  depends_on = [
+    aws_iam_role_policy_attachment.lambda,
+    aws_iam_role_policy.lambda_sqs,
+  ]
 }
 
 resource "aws_apigatewayv2_api" "main" {
@@ -109,8 +119,14 @@ resource "aws_iam_role_policy" "github_actions" {
         "apigatewayv2:*",
         "sqs:*",
         "logs:*",
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject",
+        "s3:ListBucket",
         "sts:AssumeRoleWithWebIdentity",
         "iam:CreateOpenIDConnectProvider",
+        "iam:GetOpenIDConnectProvider",
+        "iam:DeleteOpenIDConnectProvider",
         "iam:GetRole",
         "iam:CreateRole",
         "iam:DeleteRole",
