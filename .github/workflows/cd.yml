@@ -12,10 +12,11 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
           aws-region: eu-west-1
-      - name: terraform apply
+      - name: deploy
         working-directory: ./ava_glue
         env:
           TF_VAR_github_thumbprint: ${{ secrets.GITHUB_OIDC_THUMBPRINT }}
         run: |
+          zip lambda.zip handler.py
           terraform init
           terraform apply -auto-approve
