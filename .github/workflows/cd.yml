@@ -15,7 +15,8 @@ jobs:
       - name: deploy
         working-directory: ./ava_glue
         env:
-          TF_VAR_github_thumbprint: ${{ secrets.GITHUB_OIDC_THUMBPRINT }}
+          TF_VAR_github_thumbprint: ${{ secrets.OIDC_THUMBPRINT }}
+          TF_VAR_github_repo: ${{ github.repository }}
         run: |
           zip lambda.zip handler.py
           terraform init
