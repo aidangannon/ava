@@ -110,6 +110,7 @@ resource "aws_iam_role_policy" "github_actions" {
         "sqs:*",
         "logs:*",
         "sts:AssumeRoleWithWebIdentity",
+        "iam:CreateOpenIDConnectProvider",
         "iam:GetRole",
         "iam:CreateRole",
         "iam:DeleteRole",
