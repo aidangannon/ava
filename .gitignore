@@ -9,3 +9,6 @@ __pycache__/
 *.tfstate
 lambda.zip
 *.tfstate.backup
+
+# output
+output.json

@@ -3,7 +3,7 @@
 
 import json
 
-def handle(event, _):
+def handler(event, _):
     print(event)
     return {
         "statusCode": 200,
