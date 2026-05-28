@@ -14,6 +14,54 @@ provider "aws" {
   region = "eu-west-1"
 }
 
+resource "aws_iam_user" "ava_agent" {
+  name = "coding-agent"
+}
+
+resource "aws_access_key" "ava_agent" {
+  user = aws_iam_user.ava_agent.name
+}
+
+
+resource "aws_iam_policy" "coding_agent_sqs" {
+  name = "CodingAgentSQSPolicy"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "SQSAgentPermissions"
+        Effect = "Allow"
+        Action = [
+          "sqs:SendMessage",
+          "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes",
+          "sqs:GetQueueUrl",
+        ]
+        Resource = aws_sqs_queue.messages.arn
+      }
+    ]
+  })
+}
+
+resource "aws_ssm_parameter" "agent_access_key_id" {
+  name  = "/coding-agent/aws-access-key-id"
+  type  = "SecureString"
+  value = aws_iam_access_key.ava_agent.id
+}
+
+resource "aws_ssm_parameter" "agent_secret_access_key" {
+  name  = "/coding-agent/aws-secret-access-key"
+  type  = "SecureString"
+  value = aws_iam_access_key.ava_agent.secret
+}
+
+resource "aws_iam_user_policy_attachment" "coding_agent_sqs" {
+  user       = aws_iam_user.coding_agent.name
+  policy_arn = aws_iam_policy.coding_agent_sqs.arn
+}
+
 resource "aws_iam_role" "lambda" {
   name = "messages-lambda-role"
   assume_role_policy = jsonencode({
