@@ -12,6 +12,6 @@ dependencies = [
 ]
 
 [project.scripts]
-ava = "main:main"
+ava = "src.main:main"
 
 [tool.uv]

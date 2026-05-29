@@ -21,6 +21,7 @@ jobs:
           TF_VAR_github_thumbprint: ${{ secrets.OIDC_THUMBPRINT }}
           TF_VAR_github_repo: ${{ github.repository }}
         run: |
-          zip lambda.zip handler.py
+          zip deploy/lambda.zip src/handler.py
+          cd deploy
           terraform init
           terraform apply -auto-approve
