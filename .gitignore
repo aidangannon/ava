@@ -3,12 +3,4 @@
 .env
 __pycache__/
 *.pyc
-
-# deploy
-.terraform/
-*.tfstate
-lambda.zip
-*.tfstate.backup
-
-# output
-output.json
+uv.lock
