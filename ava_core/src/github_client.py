@@ -1,4 +1,3 @@
-import os
 import subprocess
 
 from github import Github, GithubException
@@ -8,17 +7,12 @@ class GithubError(Exception):
     pass
 
 
-def _token() -> str | None:
-    token = os.environ.get("GITHUB_TOKEN")
-    if token:
-        return token
+def _token() -> str:
     try:
-        r = subprocess.run(["gh", "auth", "token"], capture_output=True, text=True)
-        if r.returncode == 0:
-            return r.stdout.strip()
-    except FileNotFoundError:
-        pass
-    return None
+        r = subprocess.run(["gh", "auth", "token"], capture_output=True, text=True, check=True)
+        return r.stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+        raise GithubError("Run 'gh auth login' to authenticate") from e
 
 
 def _repo(owner: str, repo_name: str):
