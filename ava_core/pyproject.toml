@@ -11,3 +11,9 @@ dependencies = [
 ava = "src.main:main"
 
 [tool.uv]
+dev-dependencies = [
+    "basedpyright>=1.18.0",
+]
+
+[tool.basedpyright]
+typeCheckingMode = "standard"
