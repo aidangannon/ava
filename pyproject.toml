@@ -7,13 +7,9 @@ dependencies = [
     "loguru>=0.7.2",
 ]
 
-[project.scripts]
-ava = "src.main:main"
-
-[tool.uv]
-dev-dependencies = [
-    "basedpyright>=1.18.0",
-]
-
-[tool.basedpyright]
+[tool.pyright]
 typeCheckingMode = "standard"
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.12"
+include = ["ava"]
