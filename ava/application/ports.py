@@ -18,12 +18,20 @@ class AgentRunner(Protocol):
 
     def run(self,
         skill: str,
-        history: str | None) -> Result:
+        history: str | None = None) -> Result:
         ...
 
-class HistoryRepository(Protocol):
+class ConfigRepository(Protocol):
 
-    def get_active(self) -> TypeResult[History]:
+    def get_active_history(self) -> TypeResult[History]:
         ...
 
-    def add(self, issue_num) ->
+    def add_history(self, issue_num: str, history: History) -> Result:
+        ...
+
+    def get_config(self) -> TypeResult[dict]:
+        ...
+
+issue_inbox: IssueInbox
+agent_runner: AgentRunner
+config_repository: ConfigRepository
