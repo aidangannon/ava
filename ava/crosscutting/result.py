@@ -5,8 +5,9 @@ from dataclasses import dataclass
 class Error:
     msg: str
 
-type Result[T] = T | Error
+type TypeResult[T] = T | Error
+type Result = None | Error
 
-def has_failed[T](result: Result[T]) -> bool:
+def has_failed(result) -> bool:
     return isinstance(result, Error)
 
