@@ -26,7 +26,7 @@ class ConfigRepository(Protocol):
     def get_active_history(self) -> TypeResult[History]:
         ...
 
-    def add_history(self, issue_num: str, history: History) -> Result:
+    def add_history(self, history: History) -> Result:
         ...
 
     def get_config(self) -> TypeResult[dict]:
