@@ -1,8 +1,10 @@
 import json
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
+
 from ava.application.model import History
-from ava.crosscutting.result import Ok, Error, Result, TypeOk, TypeError, TypeResult
+from ava.crosscutting.result import Error, Ok, Result, TypeError, TypeOk, TypeResult
+
 
 @dataclass(slots=True)
 class FileConfigRepository:
@@ -47,3 +49,5 @@ class FileConfigRepository:
     def get_config(self) -> TypeResult[dict]:
         with open(self.config_file) as f:
             return TypeOk[dict](json.load(f))
+
+file_config_repository = FileConfigRepository()

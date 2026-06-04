@@ -18,7 +18,8 @@ class AgentRunner(Protocol):
 
     def run(self,
         skill: str,
-        history: str | None = None) -> Result:
+        prompt: str,
+        history: str | None = None) -> TypeResult[str | None]:
         ...
 
 class ConfigRepository(Protocol):
