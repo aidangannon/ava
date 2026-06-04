@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 @dataclass(slots=True)
 class TypeError[T]:
-    msg: Githu
+    msg: str
 
     def unwrap(self) -> T:
         raise Exception(self.msg)

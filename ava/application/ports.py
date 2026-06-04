@@ -5,13 +5,13 @@ from ava.crosscutting.result import Result, TypeResult
 
 class IssueInbox(Protocol):
 
-    def search(self, repository: str, assignee: str) -> TypeResult[str]:
+    def get_first_assigned_issue(self, repository: str, assignee: str) -> TypeResult[str]:
         ...
 
-    def get_reply(self, repository: str, issue_num: str) -> TypeResult[str]:
+    def get_latest_comment(self, repository: str, issue_num: str) -> TypeResult[str]:
         ...
 
-    def reply(self, repository: str, issue_num: str) -> TypeResult[str]:
+    def post_comment(self, repository: str, issue_num: str, text: str) -> Result:
         ...
 
 class AgentRunner(Protocol):
