@@ -13,14 +13,15 @@ def run_claude(skill: str, prompt: str, history: str | None = None) -> TypeResul
     env = {**os.environ, "ANTHROPIC_API_KEY": config.unwrap()["Anthropic"]["Token"]}
     stdin = f"{prompt}\n\n{history}" if history else prompt
 
-    pwd.getpwnam("ava")
+    ava_user = pwd.getpwnam("ava")
 
     result = subprocess.run(
         ["claude", "-p", f"/{skill}", "--dangerously-skip-permissions"],
         env=env,
         input=stdin,
         capture_output=True,
-        text=True
+        text=True,
+        user=ava_user.pw_uid
     )
 
     if result.returncode != 0:
