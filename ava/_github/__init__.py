@@ -1,3 +1,4 @@
+from ava.crosscutting import logging
 import subprocess
 from dataclasses import dataclass, field
 
@@ -17,6 +18,8 @@ class GithubIssueInbox:
         except UnknownObjectException:
             return TypeError[str](f"Repository '{repository}' not found")
 
+        _debug = repo.get_issues(state="open")[0].assignees[0].name
+        logging.logger.info(f"Debug log username of issue assiginee {_debug}")
         issues = repo.get_issues(assignee=assignee, state="open")
         if issues.totalCount == 0:
             return TypeError[str](f"No open issues assigned to '{assignee}' for '{repository}'")
