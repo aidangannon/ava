@@ -1,3 +1,4 @@
+import subprocess
 from dataclasses import dataclass, field
 
 from github import Github, UnknownObjectException
@@ -18,11 +19,14 @@ class GithubIssueInbox:
 
         issues = repo.get_issues(assignee=assignee, state="open")
         if issues.totalCount == 0:
-            return TypeError[str](f"No open issues assigned to '{assignee}'")
+            return TypeError[str](f"No open issues assigned to '{assignee}' for '{repository}'")
 
         return TypeOk[str](str(issues[0].number))
 
-    def get_latest_comment(self, repository: str, issue_num: str) -> TypeResult[str]:
+    def get_latest_comment_by(self,
+        repository: str,
+        issue_num: str,
+        user: str) -> TypeResult[str]:
         try:
             repo = self.client.get_repo(full_name_or_id=repository)
         except UnknownObjectException:
@@ -37,7 +41,12 @@ class GithubIssueInbox:
         if not comments:
             return TypeError[str]("No comments on issue")
 
-        return TypeOk[str](comments[-1].body)
+        last_comment = comments[-1]
+
+        if last_comment.user.name == user:
+            return TypeOk[str](last_comment.body)
+
+        return TypeError[str](f"Last comment was by '{last_comment.user.name}' not by '{user}'")
 
     def post_comment(self, repository: str, issue_num: str, text: str) -> Result:
         try:
@@ -65,3 +74,13 @@ class GithubIssueInbox:
 
 
 github_issue_inbox = GithubIssueInbox()
+
+def clone_github_repo(repo_full_name: str, dest: str) -> Result:
+    result = subprocess.run(
+        ["git", "clone", f"git@github.com:{repo_full_name}.git", dest],
+        capture_output=True, text=True
+    )
+    if result.returncode == 128:
+        return Error(f"Access denied to '{repo_full_name}'")
+    result.check_returncode()
+    return Ok()

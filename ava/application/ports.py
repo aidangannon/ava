@@ -8,7 +8,10 @@ class IssueInbox(Protocol):
     def get_first_assigned_issue(self, repository: str, assignee: str) -> TypeResult[str]:
         ...
 
-    def get_latest_comment(self, repository: str, issue_num: str) -> TypeResult[str]:
+    def get_latest_comment_by(self,
+        repository: str,
+        issue_num: str,
+        user: str) -> TypeResult[str]:
         ...
 
     def post_comment(self, repository: str, issue_num: str, text: str) -> Result:
@@ -16,10 +19,15 @@ class IssueInbox(Protocol):
 
 class AgentRunner(Protocol):
 
-    def run(self,
+    def __call__(self,
         skill: str,
         prompt: str,
         history: str | None = None) -> TypeResult[str | None]:
+        ...
+
+class RepoCloner(Protocol):
+
+    def __call__(self, repo_full_name: str, dest: str) -> Result:
         ...
 
 class ConfigRepository(Protocol):
@@ -34,5 +42,6 @@ class ConfigRepository(Protocol):
         ...
 
 issue_inbox: IssueInbox
-agent_runner: AgentRunner
+run_agent: AgentRunner
 config_repository: ConfigRepository
+clone_repo: RepoCloner

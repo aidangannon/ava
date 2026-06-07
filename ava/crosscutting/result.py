@@ -11,6 +11,10 @@ class TypeError[T]:
     def has_failed(self) -> bool:
         return True
 
+    @property
+    def data(self) -> T:
+        raise Exception("eeek, no data here")
+
 @dataclass(slots=True)
 class TypeOk[T]:
     data: T
@@ -20,6 +24,10 @@ class TypeOk[T]:
 
     def has_failed(self) -> bool:
         return False
+
+    @property
+    def msg(self) -> str:
+        return "ok dawg"
 
 @dataclass(slots=True)
 class Error:
@@ -33,6 +41,10 @@ class Ok:
 
     def has_failed(self) -> bool:
         return False
+
+    @property
+    def msg(self) -> str:
+        return "ok dawg"
 
 type TypeResult[T] = TypeOk[T] | TypeError[T]
 type Result = Ok | Error
