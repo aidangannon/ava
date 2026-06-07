@@ -18,7 +18,7 @@ class GithubIssueInbox:
         except UnknownObjectException:
             return TypeError[str](f"Repository '{repository}' not found")
 
-        _debug = repo.get_issues(state="open")[0].assignees[0].name
+        _debug = repo.get_issues(state="open")[0].assignees[0].login
         logging.logger.info(f"Debug log username of issue assiginee {_debug}")
         issues = repo.get_issues(assignee=assignee, state="open")
         if issues.totalCount == 0:
@@ -46,10 +46,10 @@ class GithubIssueInbox:
 
         last_comment = comments[-1]
 
-        if last_comment.user.name == user:
+        if last_comment.user.login == user:
             return TypeOk[str](last_comment.body)
 
-        return TypeError[str](f"Last comment was by '{last_comment.user.name}' not by '{user}'")
+        return TypeError[str](f"Last comment was by '{last_comment.user.login}' not by '{user}'")
 
     def post_comment(self, repository: str, issue_num: str, text: str) -> Result:
         try:
