@@ -1,8 +1,8 @@
+from ava.crosscutting import logging
 from ava.crosscutting.result import TypeOk
 from ava.crosscutting.result import TypeError
 from ava.crosscutting.result import TypeResult
 from pathlib import Path
-from ava.crosscutting.logging import logger
 from ava.application import ports
 from ava.application.model import History
 
@@ -16,16 +16,25 @@ def ava_routine() -> None:
     manager_username: str = config["Author"]
     manager_email: str = config["AuthorEmail"]
 
+    logging.logger.info(f"ava_routine: repo={repo} repos_dest={repos_dest} agent={agent_username} author={manager_username} author_email={manager_email}")
+
     history_result = ports.config_repository.get_active_history()
     reply = None
 
     if not history_result.has_failed():
         history = history_result.unwrap()
-        logger.info(f"Active history for repo '{repo}'")
+        logging.logger.info(f"Active history for repo '{repo}'")
         issue = history.issue
     else:
         history = None
-        issue = get_first_issue(agent_username=agent_username, repo=repo, repos_dest=repos_dest).unwrap()
+        issue_result = get_first_issue(agent_username=agent_username, repo=repo, repos_dest=repos_dest)
+
+        if issue_result.has_failed():
+            logging.logger.error(issue_result.msg)
+            return
+
+        issue = issue_result.unwrap()
+
         reply = ports \
             .issue_inbox \
             .get_latest_comment_by(repository=repo, issue_num=issue, user=manager_username)
@@ -43,7 +52,7 @@ def ava_routine() -> None:
         )
 
     if run_result.has_failed():
-        logger.error(run_result.msg)
+        logging.logger.error(run_result.msg)
         return
 
     stdout = run_result.unwrap()
@@ -68,7 +77,7 @@ def get_first_issue(agent_username: str, repo: str, repos_dest: Path) -> TypeRes
     )
 
     if get_first_issue_result.has_failed():
-        logger.error(get_first_issue_result.msg)
+        logging.logger.error(get_first_issue_result.msg)
         return TypeError("No first issue found")
 
     issue = get_first_issue_result.unwrap()

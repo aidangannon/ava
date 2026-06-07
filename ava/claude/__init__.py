@@ -4,7 +4,7 @@ from ava.application import ports
 from ava.crosscutting.result import TypeError, TypeOk, TypeResult
 
 
-def run_claude(self, skill: str, prompt: str, history: str | None = None) -> TypeResult[str | None]:
+def run_claude(skill: str, prompt: str, history: str | None = None) -> TypeResult[str | None]:
     config = ports.config_repository.get_config()
     if config.has_failed():
         return TypeError[str | None]("Failed to load config")
