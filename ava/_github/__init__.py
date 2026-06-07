@@ -84,6 +84,6 @@ def clone_github_repo(repo_full_name: str, dest: str) -> Result:
         capture_output=True, text=True
     )
     if result.returncode == 128:
-        return Error(f"Access denied to '{repo_full_name}'")
+        return Error(f"Access denied to '{repo_full_name}': {result.stderr.strip()}")
     result.check_returncode()
     return Ok()
