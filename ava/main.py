@@ -20,17 +20,19 @@ def setup_logging() -> None:
     loguru.logger.add(sys.stdout, serialize=True)
 
 def run_task() -> None:
-    while True:
-        logging.logger.info("Starting schedule")
+    logging.logger.info("Starting schedule")
 
-        try:
-            service.ava_routine() 
-        except Exception as e:
-            logging.logger.error(f"Exception occurred in schdule '{str(e)}'")
+    try:
+        service.ava_routine() 
+    except Exception as e:
+        logging.logger.error(f"Exception occurred in schdule '{str(e)}'")
 
-        logging.logger.info("Ending schedule")
-
-        time.sleep(300)
+    logging.logger.info("Ending schedule")
 
 setup_ports()
 setup_logging()
+
+while True:
+    run_task()
+
+    time.sleep(300)
