@@ -82,7 +82,7 @@ def get_first_issue(agent_username: str, repo: str, repos_dest: Path) -> TypeRes
 
     issue = get_first_issue_result.unwrap()
 
-    if not (repos_dest / repo.split("/")[-1]).exists():
+    if not (repos_dest).exists():
         clone_result = ports.clone_repo(repo, str(repos_dest))
         if clone_result.has_failed():
             return TypeError[str](clone_result.msg)
