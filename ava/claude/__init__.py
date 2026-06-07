@@ -1,3 +1,4 @@
+import pwd
 import subprocess
 import os
 from ava.application import ports
@@ -11,6 +12,8 @@ def run_claude(skill: str, prompt: str, history: str | None = None) -> TypeResul
 
     env = {**os.environ, "ANTHROPIC_API_KEY": config.unwrap()["Anthropic"]["Token"]}
     stdin = f"{prompt}\n\n{history}" if history else prompt
+
+    pwd.getpwnam("ava")
 
     result = subprocess.run(
         ["claude", "-p", f"/{skill}", "--dangerously-skip-permissions"],
