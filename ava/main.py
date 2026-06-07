@@ -15,9 +15,10 @@ def setup_ports() -> None:
     ports.run_agent = claude.run_claude
 
 def setup_logging() -> None:
+    import json
     logging.logger = loguru.logger
     loguru.logger.remove()
-    loguru.logger.add(sys.stdout, serialize=True)
+    loguru.logger.add(lambda msg: print(json.dumps(json.loads(msg), indent=2), flush=True), serialize=True)
 
 def run_task() -> None:
     logging.logger.info("Starting schedule")
