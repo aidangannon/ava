@@ -39,7 +39,7 @@ def ava_routine() -> None:
             .issue_inbox \
             .get_latest_comment_by(repository=repo, issue_num=issue, user=manager_username)
 
-    basic_prompt = f"Repo:{repo}\nIssue:{issue}\nAuthorForCommits:{manager_email}"
+    basic_prompt = f"Repo:{repo}\nRepoPath:{repos_dest}\nIssue:{issue}\nAuthorForCommits:{manager_email}"
 
     if reply is not None:
         basic_prompt += f"\nReply: {reply}"

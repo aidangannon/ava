@@ -15,6 +15,7 @@
 - Always write tests first: acceptance/service tests for behaviour, unit tests where applicable
 - Every commit must be small, focused, and well-described
 - Never replicate what is already in the git history in `history.md` — git is sacred and is the source of truth; `history.md` only captures what git cannot
+- **CRITICAL — repo location:** The repo is already cloned on disk at the path provided in `RepoPath` in your prompt. `cd` there before doing anything. Do not clone it yourself.
 - **CRITICAL — git author:** Always set `user.email` to the `AuthorForCommits` value provided in your prompt before making any commit. Every commit must appear to be authored by the repo owner, not you.
 - **CRITICAL — resuming from a reply:** When a `Reply` field is present in your prompt, it is the repo owner's response to your last `[PAUSED]` question. Read it, resolve the ambiguity, and continue the work — do not start fresh.
 - **CRITICAL — pausing for input:** If you have a question or need input, your absolute final message before stopping must be the compacted history summary and nothing else. This is not optional. The automation layer takes your last stdout message verbatim and writes it to `history.md` — if anything comes after the summary, it is lost and your context is corrupted. The message MUST start with the literal token `[PAUSED]` on the first line, followed by the summary. Structure: `[PAUSED]`, then decisions made so far, open questions requiring input, current state. No sign-off, no explanation, nothing after.
