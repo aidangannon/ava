@@ -3,6 +3,23 @@ from typing import Protocol
 from ava.application.model import History
 from ava.crosscutting.result import Result, TypeResult
 
+class ReviewInbox(Protocol):
+
+    def get_latest_pr_status(self, repository: str, issue_num: str) -> TypeResult[str]:
+        ...
+
+    def create_pr(self, repository: str, issue_num: str, title: str) -> Result:
+        ...
+
+    def merge(self, repository: str, issue_num: str) -> Result:
+        ...
+
+    def get_latest_comment_by(self, repository: str, issue_num: str, user: str) -> TypeResult[str]:
+        ...
+
+    def post_comment(self, repository: str, issue_num: str, text: str) -> Result:
+        ...
+
 class IssueInbox(Protocol):
 
     def get_first_assigned_issue(self, repository: str, assignee: str) -> TypeResult[str]:
@@ -41,7 +58,11 @@ class ConfigRepository(Protocol):
     def get_config(self) -> TypeResult[dict]:
         ...
 
+    def set_state(self, state: str) -> Result:
+        ...
+
 issue_inbox: IssueInbox
+review_inbox: ReviewInbox
 run_agent: AgentRunner
 config_repository: ConfigRepository
 clone_repo: RepoCloner

@@ -46,6 +46,14 @@ class FileConfigRepository:
 
         return Ok()
 
+    def set_state(self, state: str) -> Result:
+        with open(self.state_file) as f:
+            contents = json.load(f)
+        contents["state"] = state
+        with open(self.state_file, "w") as f:
+            json.dump(contents, f, indent=2)
+        return Ok()
+
     def get_config(self) -> TypeResult[dict]:
         with open(self.config_file) as f:
             return TypeOk[dict](json.load(f))

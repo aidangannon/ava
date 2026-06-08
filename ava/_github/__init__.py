@@ -1,20 +1,28 @@
 from ava.crosscutting import logging
 import subprocess
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from github import Github, UnknownObjectException
 
 from ava.application import ports
 from ava.crosscutting.result import Ok, Error, Result, TypeOk, TypeError, TypeResult
 
+_client: Github | None = None
+
+def _get_client() -> Github:
+    global _client
+    if not _client:
+        config = ports.config_repository.get_config().unwrap()
+        _client = Github(config["Github"]["Token"])
+    return _client
+
 
 @dataclass(slots=True)
 class GithubIssueInbox:
-    _client: Github | None = field(default=None)
 
     def get_first_assigned_issue(self, repository: str, assignee: str) -> TypeResult[str]:
         try:
-            repo = self.client.get_repo(full_name_or_id=repository)
+            repo = _get_client().get_repo(full_name_or_id=repository)
         except UnknownObjectException:
             return TypeError[str](f"Repository '{repository}' not found")
 
@@ -26,12 +34,9 @@ class GithubIssueInbox:
 
         return TypeOk[str](str(issues[0].number))
 
-    def get_latest_comment_by(self,
-        repository: str,
-        issue_num: str,
-        user: str) -> TypeResult[str]:
+    def get_latest_comment_by(self, repository: str, issue_num: str, user: str) -> TypeResult[str]:
         try:
-            repo = self.client.get_repo(full_name_or_id=repository)
+            repo = _get_client().get_repo(full_name_or_id=repository)
         except UnknownObjectException:
             return TypeError[str](f"Repository '{repository}' not found")
 
@@ -45,7 +50,6 @@ class GithubIssueInbox:
             return TypeError[str]("No comments on issue")
 
         last_comment = comments[-1]
-
         if last_comment.user.login == user:
             return TypeOk[str](last_comment.body)
 
@@ -53,7 +57,7 @@ class GithubIssueInbox:
 
     def post_comment(self, repository: str, issue_num: str, text: str) -> Result:
         try:
-            repo = self.client.get_repo(full_name_or_id=repository)
+            repo = _get_client().get_repo(full_name_or_id=repository)
         except UnknownObjectException:
             return Error(f"Repository '{repository}' not found")
 
@@ -65,18 +69,86 @@ class GithubIssueInbox:
         issue.create_comment(text)
         return Ok()
 
-    @property
-    def client(self) -> Github:
-        if not self._client:
-            config = ports \
-                .config_repository \
-                .get_config() \
-                .unwrap()
-            self._client = Github(config["Github"]["Token"])
-        return self._client
+
+@dataclass(slots=True)
+class GithubReviewInbox:
+
+    def get_latest_pr_status(self, repository: str, issue_num: str) -> TypeResult[str]:
+        try:
+            repo = _get_client().get_repo(full_name_or_id=repository)
+        except UnknownObjectException:
+            return TypeError[str](f"Repository '{repository}' not found")
+
+        prs = [pr for pr in repo.get_pulls(state="open") if pr.head.ref == issue_num]
+        if not prs:
+            return TypeError[str](f"No open PR found for issue #{issue_num}")
+
+        pr = prs[0]
+        if pr.mergeable:
+            return TypeOk[str]("ready_to_merge")
+        return TypeOk[str]("open")
+
+    def create_pr(self, repository: str, issue_num: str, title: str) -> Result:
+        try:
+            repo = _get_client().get_repo(full_name_or_id=repository)
+        except UnknownObjectException:
+            return Error(f"Repository '{repository}' not found")
+
+        repo.create_pull(
+            title=title,
+            body=f"Closes #{issue_num}",
+            head=issue_num,
+            base=repo.default_branch
+        )
+        return Ok()
+
+    def merge(self, repository: str, issue_num: str) -> Result:
+        try:
+            repo = _get_client().get_repo(full_name_or_id=repository)
+        except UnknownObjectException:
+            return Error(f"Repository '{repository}' not found")
+
+        prs = [pr for pr in repo.get_pulls(state="open") if pr.head.ref == issue_num]
+        if not prs:
+            return Error(f"No open PR found for issue #{issue_num}")
+
+        prs[0].merge()
+        return Ok()
+
+    def get_latest_comment_by(self, repository: str, issue_num: str, user: str) -> TypeResult[str]:
+        try:
+            repo = _get_client().get_repo(full_name_or_id=repository)
+        except UnknownObjectException:
+            return TypeError[str](f"Repository '{repository}' not found")
+
+        prs = [pr for pr in repo.get_pulls(state="all") if pr.head.ref == issue_num]
+        if not prs:
+            return TypeError[str](f"No PR found for issue #{issue_num}")
+
+        comments = list(prs[0].get_review_comments()) + list(prs[0].get_issue_comments())
+        user_comments = [c for c in comments if c.user.login == user]
+        if not user_comments:
+            return TypeError[str](f"No comments by '{user}' on PR for issue #{issue_num}")
+
+        return TypeOk[str](user_comments[-1].body)
+
+    def post_comment(self, repository: str, issue_num: str, text: str) -> Result:
+        try:
+            repo = _get_client().get_repo(full_name_or_id=repository)
+        except UnknownObjectException:
+            return Error(f"Repository '{repository}' not found")
+
+        prs = [pr for pr in repo.get_pulls(state="all") if pr.head.ref == issue_num]
+        if not prs:
+            return Error(f"No PR found for issue #{issue_num}")
+
+        prs[0].create_issue_comment(text)
+        return Ok()
 
 
 github_issue_inbox = GithubIssueInbox()
+github_review_inbox = GithubReviewInbox()
+
 
 def clone_github_repo(repo_full_name: str, dest: str) -> Result:
     result = subprocess.run(
