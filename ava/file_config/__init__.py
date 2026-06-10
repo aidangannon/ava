@@ -46,6 +46,22 @@ class FileConfigRepository:
 
         return Ok()
 
+    def clear_history(self) -> Result:
+        with open(self.state_file, "w") as f:
+            json.dump({}, f, indent=2)
+        with open(self.history_file, "w") as f:
+            f.write("")
+        return Ok()
+
+    def get_state(self) -> TypeResult[str]:
+        if not self.state_file.exists():
+            return TypeError[str]("State file not found")
+        with open(self.state_file) as f:
+            contents = json.load(f)
+        if "state" not in contents:
+            return TypeError[str]("No state in state file")
+        return TypeOk[str](contents["state"])
+
     def set_state(self, state: str) -> Result:
         with open(self.state_file) as f:
             contents = json.load(f)

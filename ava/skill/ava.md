@@ -15,6 +15,20 @@
 - Always write tests first: acceptance/service tests for behaviour, unit tests where applicable
 - Every commit must be small, focused, and well-described
 - Never replicate what is already in the git history in `history.md` — git is sacred and is the source of truth; `history.md` only captures what git cannot
+- **CRITICAL — PR state:** Your prompt will contain `PrUp:True` or `PrUp:False`. If `PrUp:True`, a PR is already open — do not output `[PR-TITLE]` or `[PR-DESCRIPTION]`. You may still push code and respond via `[REPLY]` and `[PAUSED]`. The automation layer handles checking for `[Review]`-tagged feedback in the GitHub issue and will pass it back to you as a `Reply` — you do not need to look for it yourself. If `PrUp:False` and your work is complete, output in this exact format — the output must end here:
+  ```
+  [PR-TITLE]
+  Your title here (single line)
+  [PR-DESCRIPTION]
+  Your description here (can be multiline, but this is the end of output)
+  ```
+- **CRITICAL — pausing with a reply:** When you need to pause and post a message on the issue, your output must follow this exact format — `[PAUSED]` summary first, then `[REPLY]` message, output ends here:
+  ```
+  [PAUSED]
+  Key decisions made so far and current state (this is saved as your history)
+  [REPLY]
+  Message to post on the GitHub issue (this is the end of output — nothing after)
+  ```
 - **CRITICAL — repo location:** The repo is already cloned on disk at the path provided in `RepoPath` in your prompt. `cd` there before doing anything. Do not clone it yourself.
 - **CRITICAL — git author:** Always set `user.email` to the `AuthorForCommits` value provided in your prompt before making any commit. Every commit must appear to be authored by the repo owner, not you.
 - **CRITICAL — resuming from a reply:** When a `Reply` field is present in your prompt, it is the repo owner's response to your last `[PAUSED]` question. Read it, resolve the ambiguity, and continue the work — do not start fresh.

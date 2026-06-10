@@ -8,16 +8,10 @@ class ReviewInbox(Protocol):
     def get_latest_pr_status(self, repository: str, issue_num: str) -> TypeResult[str]:
         ...
 
-    def create_pr(self, repository: str, issue_num: str, title: str) -> Result:
+    def create_pr(self, repository: str, issue_num: str, title: str, body: str) -> Result:
         ...
 
     def merge(self, repository: str, issue_num: str) -> Result:
-        ...
-
-    def get_latest_comment_by(self, repository: str, issue_num: str, user: str) -> TypeResult[str]:
-        ...
-
-    def post_comment(self, repository: str, issue_num: str, text: str) -> Result:
         ...
 
 class IssueInbox(Protocol):
@@ -58,7 +52,13 @@ class ConfigRepository(Protocol):
     def get_config(self) -> TypeResult[dict]:
         ...
 
+    def get_state(self) -> TypeResult[str]:
+        ...
+
     def set_state(self, state: str) -> Result:
+        ...
+
+    def clear_history(self) -> Result:
         ...
 
 issue_inbox: IssueInbox

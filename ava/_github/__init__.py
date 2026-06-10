@@ -88,7 +88,7 @@ class GithubReviewInbox:
             return TypeOk[str]("ready_to_merge")
         return TypeOk[str]("open")
 
-    def create_pr(self, repository: str, issue_num: str, title: str) -> Result:
+    def create_pr(self, repository: str, issue_num: str, title: str, body: str) -> Result:
         try:
             repo = _get_client().get_repo(full_name_or_id=repository)
         except UnknownObjectException:
@@ -96,7 +96,7 @@ class GithubReviewInbox:
 
         repo.create_pull(
             title=title,
-            body=f"Closes #{issue_num}",
+            body=body,
             head=issue_num,
             base=repo.default_branch
         )
@@ -114,37 +114,6 @@ class GithubReviewInbox:
 
         prs[0].merge()
         return Ok()
-
-    def get_latest_comment_by(self, repository: str, issue_num: str, user: str) -> TypeResult[str]:
-        try:
-            repo = _get_client().get_repo(full_name_or_id=repository)
-        except UnknownObjectException:
-            return TypeError[str](f"Repository '{repository}' not found")
-
-        prs = [pr for pr in repo.get_pulls(state="all") if pr.head.ref == issue_num]
-        if not prs:
-            return TypeError[str](f"No PR found for issue #{issue_num}")
-
-        comments = list(prs[0].get_review_comments()) + list(prs[0].get_issue_comments())
-        user_comments = [c for c in comments if c.user.login == user]
-        if not user_comments:
-            return TypeError[str](f"No comments by '{user}' on PR for issue #{issue_num}")
-
-        return TypeOk[str](user_comments[-1].body)
-
-    def post_comment(self, repository: str, issue_num: str, text: str) -> Result:
-        try:
-            repo = _get_client().get_repo(full_name_or_id=repository)
-        except UnknownObjectException:
-            return Error(f"Repository '{repository}' not found")
-
-        prs = [pr for pr in repo.get_pulls(state="all") if pr.head.ref == issue_num]
-        if not prs:
-            return Error(f"No PR found for issue #{issue_num}")
-
-        prs[0].create_issue_comment(text)
-        return Ok()
-
 
 github_issue_inbox = GithubIssueInbox()
 github_review_inbox = GithubReviewInbox()

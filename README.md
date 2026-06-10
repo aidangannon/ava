@@ -2,43 +2,14 @@
 
 Local GitHub issue agent. Polls assigned issues every 5 minutes, runs Claude Code on each one, and raises a PR when done.
 
-## Config
+## States
 
-```
-~/.config/ava/config.toml   # required
-~/.config/ava/repos          # one owner/repo per line
-~/.config/ava/skills/ava.md  # your base skill/system prompt
-```
+Transitions:
 
-### config.toml
-
-```toml
-github_user   = "your-github-username"
-git_email     = "you@example.com"   # optional override for commits
-poll_interval = 300                  # seconds (default 300)
-```
-
-### repos
-
-```
-owner/repo-one
-owner/repo-two
-```
-
-### skills/ava.md
-
-Write your instructions for Claude here. End with:
-
-- Post a GitHub comment starting with `[AVA:WAITING]` when you need a decision from the user, then stop.
-- Raise a PR and output `[AVA:DONE]` when the task is complete.
-
-## Auth
-
-Set `GITHUB_TOKEN` or ensure `gh auth login` is done. SSH key must have push access to the repos.
-
-## Run
-
-```sh
-cd ava_core
-uv run ava
-```
+SEARCHING → SEARCHING — no issue found, keep looking
+SEARCHING → PENDING — issue found but agent needs context from the user before proceeding
+SEARCHING → REVIEW — agent completed work and raised a PR
+PENDING → PENDING — more input needed, still waiting
+PENDING → REVIEW — context provided, agent resumes and updates/raises PR
+REVIEW → PENDING — PR has comments that need to be addressed
+REVIEW → DONE — PR approved, work complete
