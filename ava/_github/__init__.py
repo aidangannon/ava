@@ -13,7 +13,7 @@ def _get_client() -> Github:
     global _client
     if not _client:
         config = ports.config_repository.get_config().unwrap()
-        _client = Github(config["Github"]["Token"])
+        _client = Github(config["github_token"])
     return _client
 
 

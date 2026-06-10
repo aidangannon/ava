@@ -10,7 +10,7 @@ def run_claude(skill: str, prompt: str, history: str | None = None) -> TypeResul
     if config.has_failed():
         return TypeError[str | None]("Failed to load config")
 
-    env = {**os.environ, "ANTHROPIC_API_KEY": config.unwrap()["Anthropic"]["Token"]}
+    env = {**os.environ, "ANTHROPIC_API_KEY": config.unwrap()["anthropic_token"]}
     stdin = f"{prompt}\n\n{history}" if history else prompt
 
     ava_user = pwd.getpwnam("ava")

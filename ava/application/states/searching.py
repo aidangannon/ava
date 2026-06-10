@@ -6,7 +6,6 @@ from ava.application import ports
 
 
 def run(config: Config) -> None:
-    history = None
     get_first_issue_result = ports.issue_inbox.get_first_assigned_issue(
         assignee=config.agent_username,
         repository=config.repo
@@ -31,7 +30,7 @@ def run(config: Config) -> None:
         .run_agent(
             skill="ava",
             prompt=basic_prompt,
-            history=None if history is None else history.content
+            history=None
         )
 
     stdout = run_result.unwrap()

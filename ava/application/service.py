@@ -18,7 +18,7 @@ def ava_routine() -> None:
 
     config = dacite.from_dict(data=config_dict, data_class=Config)
 
-    state = states.PENDING
+    state = states.SEARCHING
     state_result = ports.config_repository.get_state()
 
     if not state_result.has_failed():
