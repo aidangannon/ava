@@ -55,6 +55,7 @@ def handle_pr(config: Config, issue: str, stdout: str) -> Result:
     ports.review_inbox.create_pr(
         repository=config.repo,
         issue_num=issue,
+        repo_path=config.repos_dest,
         title=pr_title,
         body=pr_description
     )

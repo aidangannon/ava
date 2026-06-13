@@ -8,7 +8,7 @@ class ReviewInbox(Protocol):
     def get_latest_pr_status(self, repository: str, issue_num: str) -> TypeResult[str]:
         ...
 
-    def create_pr(self, repository: str, issue_num: str, title: str, body: str) -> Result:
+    def create_pr(self, repository: str, issue_num: str, repo_path: str, title: str, body: str) -> Result:
         ...
 
     def merge(self, repository: str, issue_num: str) -> Result:
