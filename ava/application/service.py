@@ -25,6 +25,6 @@ def ava_routine() -> None:
     if not state_result.has_failed():
         state = state_result.unwrap()
 
-    logging.logger.contextualize({"STATE": state, "CONFIG": config})
+    logging.logger.contextualize(**{"STATE": state, "CONFIG": config})
 
     state_machine[state](config)
