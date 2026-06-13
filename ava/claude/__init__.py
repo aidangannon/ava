@@ -1,3 +1,4 @@
+from ava.crosscutting import logging
 import pwd
 import subprocess
 import os
@@ -10,11 +11,12 @@ def run_claude(skill: str, prompt: str, history: str | None = None) -> TypeResul
     if config.has_failed():
         return TypeError[str | None]("Failed to load config")
 
-    env = {**os.environ, "ANTHROPIC_API_KEY": config.unwrap()["anthropic_token"]}
+    ava_user = pwd.getpwnam("ava")
+    env = {**os.environ, "ANTHROPIC_API_KEY": config.unwrap()["anthropic_token"], "SHELL": ava_user.pw_shell}
     stdin = f"{prompt}\n\n{history}" if history else prompt
 
-    ava_user = pwd.getpwnam("ava")
-
+    logging.logger.info(f"stdin is '{stdin}'")
+    
     result = subprocess.run(
         ["claude", "-p", f"/{skill}", "--dangerously-skip-permissions"],
         env=env,
