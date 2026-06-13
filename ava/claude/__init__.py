@@ -1,6 +1,5 @@
 from ava.crosscutting import logging
 import subprocess
-import os
 from ava.application import ports
 from ava.crosscutting.result import TypeError, TypeOk, TypeResult
 
@@ -10,14 +9,12 @@ def run_claude(skill: str, prompt: str, history: str | None = None) -> TypeResul
     if config.has_failed():
         return TypeError[str | None]("Failed to load config")
 
-    env = {**os.environ, "SHELL": "/bin/bash"}
     stdin = f"{prompt}\n\n{history}" if history else prompt
 
     logging.logger.info(f"stdin is '{stdin}'")
 
     result = subprocess.run(
         ["claude", "-p", f"/{skill}", "--dangerously-skip-permissions"],
-        env=env,
         input=stdin,
         capture_output=True,
         text=True
