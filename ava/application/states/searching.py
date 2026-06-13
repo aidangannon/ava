@@ -23,6 +23,8 @@ def run(config: Config) -> None:
         clone_result = ports.clone_repo(config.repo, config.repos_dest)
         if clone_result.has_failed():
             raise Exception(clone_result.msg)
+    else:
+        logging.logger.info(f"repo '{config.repos_dest}' is already cloned")
 
     basic_prompt = f"Repo:{config.repo}\nRepoPath:{config.repos_dest}\nIssue:{issue}\nAuthorForCommits:{config.manager_email}\nPrUp:False"
 
