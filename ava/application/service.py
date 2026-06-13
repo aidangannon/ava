@@ -1,3 +1,4 @@
+from ava.crosscutting import logging
 from ava.crosscutting.config import Config
 import dacite
 from ava.application import ports
@@ -23,5 +24,7 @@ def ava_routine() -> None:
 
     if not state_result.has_failed():
         state = state_result.unwrap()
+
+    logging.logger.contextualize({"STATE": state, "CONFIG": config})
 
     state_machine[state](config)
