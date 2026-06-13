@@ -1,64 +1,58 @@
-from ava.crosscutting.result import Error
-from ava.crosscutting.result import Result
-from ava.crosscutting.result import Ok
-from ava.application import states
+from ava.crosscutting.result import Error, Ok, Result
 from ava.application.model import History
 from ava.crosscutting.config import Config
-from ava.application import ports
+from ava.application import ports, states
 
-# sections that are from stdout in agent
+HISTORY = "[HISTORY]"
 REPLY = "[REPLY]"
-PAUSED = "[PAUSED]"
 PR_TITLE = "[PR-TITLE]"
 PR_DESCRIPTION = "[PR-DESCRIPTION]"
 
-def handle_reply(config: Config, issue: str, stdout: str) -> Result:
-    if REPLY not in stdout:
-        return Error("No reply")
+ALL_TAGS = [HISTORY, REPLY, PR_TITLE, PR_DESCRIPTION]
 
-    if PAUSED not in stdout:
-        raise Exception(f"Invalid state: [REPLY] without [PAUSED]\n{stdout}")
 
-    summary = stdout.split(PAUSED, 1)[1].split(REPLY, 1)[0].strip()
-    reply_text = stdout.split(REPLY, 1)[1].strip()
+def _extract(stdout: str, tag: str) -> str | None:
+    if tag not in stdout:
+        return None
+    content = stdout.split(tag, 1)[1]
+    for other in ALL_TAGS:
+        if other != tag and other in content:
+            content = content.split(other, 1)[0]
+    return content.strip() or None
 
-    if not summary:
-        raise Exception(f"Invalid state: empty [PAUSED] summary\n{stdout}")
 
-    if not reply_text:
-        raise Exception(f"Invalid state: empty [REPLY] content\n{stdout}")
+def handle(config: Config, issue: str, stdout: str) -> Result:
+    history = _extract(stdout, HISTORY)
+    if not history:
+        raise Exception(f"Invalid stdout: [HISTORY] missing or empty\n{stdout}")
 
-    ports.issue_inbox.post_comment(config.repo, issue, reply_text)
     ports.config_repository.add_history(
-        History(issue=issue, repository=config.repo, content=summary)
+        History(issue=issue, repository=config.repo, content=history)
     )
-    ports.config_repository.set_state(states.PENDING)
 
-    return Ok()
+    reply = _extract(stdout, REPLY)
+    if reply:
+        ports.issue_inbox.post_comment(config.repo, issue, reply)
+        if ports.config_repository.get_state().unwrap() == states.SEARCHING:
+            ports.config_repository.set_state(states.PENDING)
+        return Ok()
 
-def handle_pr(config: Config, issue: str, stdout: str) -> Result:
-    if PR_TITLE not in stdout:
-        return Error("No pr")
+    pr_title = _extract(stdout, PR_TITLE)
+    pr_description = _extract(stdout, PR_DESCRIPTION)
 
-    if PR_DESCRIPTION not in stdout:
-        raise Exception(f"Invalid state: [PR-TITLE] without [PR-DESCRIPTION]\n{stdout}")
+    if pr_title and not pr_description:
+        raise Exception(f"Invalid stdout: [PR-TITLE] without [PR-DESCRIPTION]\n{stdout}")
+    if pr_description and not pr_title:
+        raise Exception(f"Invalid stdout: [PR-DESCRIPTION] without [PR-TITLE]\n{stdout}")
 
-    pr_title = stdout.split(PR_TITLE, 1)[1].split(PR_DESCRIPTION, 1)[0].strip()
-    pr_description = stdout.split(PR_DESCRIPTION, 1)[1].strip()
-
-    if not pr_title:
-        raise Exception(f"Invalid state: empty [PR-TITLE]\n{stdout}")
-
-    if not pr_description:
-        raise Exception(f"Invalid state: empty [PR-DESCRIPTION]\n{stdout}")
-
-    ports.review_inbox.create_pr(
-        repository=config.repo,
-        issue_num=issue,
-        repo_path=config.repos_dest,
-        title=pr_title,
-        body=pr_description
-    )
-    ports.config_repository.set_state(states.REVIEW)
+    if pr_title and pr_description:
+        ports.review_inbox.create_pr(
+            repository=config.repo,
+            issue_num=issue,
+            repo_path=config.repos_dest,
+            title=pr_title,
+            body=pr_description
+        )
+        ports.config_repository.set_state(states.REVIEW)
 
     return Ok()

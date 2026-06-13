@@ -38,5 +38,4 @@ def run(config: Config) -> None:
     if not stdout:
         raise Exception("Stdout from agent does not exist")
 
-    common.handle_pr(config, history.issue, stdout)
-    common.handle_reply(config, history.issue, stdout)
+    common.handle(config, history.issue, stdout)

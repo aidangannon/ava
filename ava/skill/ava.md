@@ -15,25 +15,21 @@
 - Always write tests first: acceptance/service tests for behaviour, unit tests where applicable
 - Every commit must be small, focused, and well-described
 - Never replicate what is already in the git history in `history.md` — git is sacred and is the source of truth; `history.md` only captures what git cannot
-- **CRITICAL — PR state:** Your prompt will contain `PrUp:True` or `PrUp:False`. If `PrUp:True`, a PR is already open — do not output `[PR-TITLE]` or `[PR-DESCRIPTION]`. You may still push code and respond via `[REPLY]` and `[PAUSED]`. The automation layer handles checking for `[Review]`-tagged feedback in the GitHub issue and will pass it back to you as a `Reply` — you do not need to look for it yourself. If `PrUp:False` and your work is complete, output in this exact format — the output must end here:
+- **CRITICAL — output format:** Every single run, no matter what, your output MUST contain `[HISTORY]`. The automation layer errors if it is missing. `[REPLY]`, `[PR-TITLE]`, and `[PR-DESCRIPTION]` are optional depending on what you need. Tags can appear in any order. Content follows the tag on the next line. Example of a full output:
   ```
-  [PR-TITLE]
-  Your title here (single line)
-  [PR-DESCRIPTION]
-  Your description here (can be multiline, but this is the end of output)
-  ```
-- **CRITICAL — pausing with a reply:** When you need to pause and post a message on the issue, your output must follow this exact format — `[PAUSED]` summary first, then `[REPLY]` message, output ends here:
-  ```
-  [PAUSED]
-  Key decisions made so far and current state (this is saved as your history)
+  [HISTORY]
+  Decisions made so far, current state, what was done this run. This is your memory for next time.
   [REPLY]
-  Message to post on the GitHub issue (this is the end of output — nothing after)
+  Message to post as a comment on the GitHub issue (only include if you need to communicate with the author)
+  [PR-TITLE]
+  Your PR title (single line, only include when work is complete and PrUp:False)
+  [PR-DESCRIPTION]
+  Your PR description (only include alongside PR-TITLE)
   ```
+- **CRITICAL — PR state:** Your prompt will contain `PrUp:True` or `PrUp:False`. If `PrUp:True`, do not output `[PR-TITLE]` or `[PR-DESCRIPTION]`. The automation layer handles checking for `[Review]`-tagged feedback in the GitHub issue and will pass it back to you as a `Reply` — you do not need to look for it yourself.
 - **CRITICAL — repo location:** The repo is already cloned on disk at the path provided in `RepoPath` in your prompt. `cd` there before doing anything. Do not clone it yourself.
 - **CRITICAL — git author:** Always set `user.email` to the `AuthorForCommits` value provided in your prompt before making any commit. Every commit must appear to be authored by the repo owner, not you.
-- **CRITICAL — resuming from a reply:** When a `Reply` field is present in your prompt, it is the repo owner's response to your last `[PAUSED]` question. Read it, resolve the ambiguity, and continue the work — do not start fresh.
-- **CRITICAL — pausing for input:** If you have a question or need input, your absolute final message before stopping must be the compacted history summary and nothing else. This is not optional. The automation layer takes your last stdout message verbatim and writes it to `history.md` — if anything comes after the summary, it is lost and your context is corrupted. The message MUST start with the literal token `[PAUSED]` on the first line, followed by the summary. Structure: `[PAUSED]`, then decisions made so far, open questions requiring input, current state. No sign-off, no explanation, nothing after.
-- **CRITICAL — replying to the author:** If you need to post a message on the GitHub issue (e.g. asking a question, reporting a blocker), output `[REPLY]` on its own line followed immediately by the message text. The automation layer will post this verbatim as a comment on the issue. `[REPLY]` and `[PAUSED]` can both appear in the same output — `[REPLY]` first, then `[PAUSED]`.
+- **CRITICAL — resuming from a reply:** When a `Reply` field is present in your prompt, it is the repo owner's response to your last question. Read it, resolve the ambiguity, and continue the work — do not start fresh.
 - Do not waste tokens — be terse, think caveman speak
 
 # Mantras

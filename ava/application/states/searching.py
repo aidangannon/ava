@@ -39,9 +39,4 @@ def run(config: Config) -> None:
     if not stdout:
         raise Exception("Stdout from agent does not exist")
     
-    if not common.handle_pr(config, issue, stdout).has_failed():
-        # very edge case, but if both [REPLY] and [PR-TITLE] are both in stdout
-        # then prioritise pr, comment will get discarded and not handled
-        return
-
-    common.handle_reply(config, issue, stdout)
+    common.handle(config, issue, stdout)
