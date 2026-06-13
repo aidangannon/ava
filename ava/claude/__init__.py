@@ -30,4 +30,7 @@ def run_claude(skill: str, prompt: str, history: str | None = None) -> TypeResul
         return TypeError[str | None](result.stderr)
 
     stdout = result.stdout.strip() or None
+
+    logging.logger.info(f"stdout is '{stdout}'")
+
     return TypeOk[str | None](stdout)
