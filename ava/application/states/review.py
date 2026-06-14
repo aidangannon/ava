@@ -17,14 +17,9 @@ def run(config: Config) -> None:
     if pr_status == "ready_to_merge":
         logging.logger.info("Task complete")
 
-        if ports.review_inbox.merge(repository=history.repository, issue_num=history.issue).has_failed():
-            raise Exception("Failed to merge PR")
-
-        if ports.issue_inbox.close_issue(repository=history.repository, issue_num=history.issue).has_failed():
-            raise Exception("Failed to close issue")
-
-        if ports.config_repository.clear_history().has_failed():
-            raise Exception("History failed to clear!!! Clear manually and restart, task complete")
+        ports.review_inbox.merge(repository=history.repository, issue_num=history.issue).throw_if_failed()
+        ports.issue_inbox.close_issue(repository=history.repository, issue_num=history.issue).throw_if_failed()
+        ports.config_repository.clear_history().throw_if_failed()
 
         return
 
@@ -67,8 +62,6 @@ def run(config: Config) -> None:
     if not stdout:
         return
 
-    push_result = ports.push_branch(config.repos_dest, history.issue)
-    if push_result.has_failed():
-        raise Exception(push_result.msg)
+    ports.push_branch(config.repos_dest, history.issue).throw_if_failed()
 
     common.handle(config, history.issue, stdout)

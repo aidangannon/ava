@@ -36,6 +36,9 @@ class Error:
     def has_failed(self) -> bool:
         return True
 
+    def throw_if_failed(self) -> None:
+        raise Exception(self.msg)
+
 @dataclass(slots=True)
 class Ok:
 
@@ -45,6 +48,9 @@ class Ok:
     @property
     def msg(self) -> str:
         return "ok dawg"
+
+    def throw_if_failed(self) -> None:
+        ...
 
 type TypeResult[T] = TypeOk[T] | TypeError[T]
 type Result = Ok | Error

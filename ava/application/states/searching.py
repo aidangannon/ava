@@ -21,8 +21,7 @@ def run(config: Config) -> None:
 
     if not Path(config.repos_dest).exists():
         clone_result = ports.clone_repo(config.repo, config.repos_dest)
-        if clone_result.has_failed():
-            raise Exception(clone_result.msg)
+        clone_result.throw_if_failed()
     else:
         logging.logger.info(f"repo '{config.repos_dest}' is already cloned")
 
