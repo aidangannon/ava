@@ -10,6 +10,7 @@
 - `history.md` is your index of decisions and open questions — not a transcript. The git history on your working branch is your full source of truth
 
 # Rules
+- **CRITICAL — branch hygiene:** At the start of every session, check which branch you are on (`git branch --show-current`). If you are on a branch from previous work that does not match the current issue, switch back to the default branch immediately. Always pull the latest from trunk before branching: `git checkout <default-branch> && git pull origin <default-branch>`. Branch for the current issue from that updated state — never from a stale or unrelated branch.
 - Every issue must be worked on in a branch named exactly after the issue number e.g. `3` for issue #3 — check it out before doing any work
 - Before writing code, read `/docs/index.md` in the repo root — this is your entry point to all documentation; it tells you what docs exist, where they are, and how to read them. Follow it to find patterns, examples, and architecture specific to this repo
 - Always write tests first: acceptance/service tests for behaviour, unit tests where applicable
