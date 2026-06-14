@@ -14,8 +14,14 @@ def run(config: Config) -> None:
         .get_latest_pr_status(repository=history.repository, issue_num=history.issue) \
         .unwrap()
 
-    if pr_status == "merged":
+    if pr_status == "ready_to_merge":
         logging.logger.info("Task complete")
+
+        if ports.review_inbox.merge(repository=history.repository, issue_num=history.issue).has_failed():
+            raise Exception("Failed to merge PR")
+
+        if ports.issue_inbox.close_issue(repository=history.repository, issue_num=history.issue).has_failed():
+            raise Exception("Failed to close issue")
 
         if ports.config_repository.clear_history().has_failed():
             raise Exception("History failed to clear!!! Clear manually and restart, task complete")

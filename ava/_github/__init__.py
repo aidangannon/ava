@@ -69,6 +69,20 @@ class GithubIssueInbox:
         issue.create_comment(text)
         return Ok()
 
+    def close_issue(self, repository: str, issue_num: str) -> Result:
+        try:
+            repo = _get_client().get_repo(full_name_or_id=repository)
+        except UnknownObjectException:
+            return Error(f"Repository '{repository}' not found")
+
+        try:
+            issue = repo.get_issue(number=int(issue_num))
+        except UnknownObjectException:
+            return Error(f"Issue #{issue_num} not found")
+
+        issue.edit(state="closed")
+        return Ok()
+
 
 @dataclass(slots=True)
 class GithubReviewInbox:

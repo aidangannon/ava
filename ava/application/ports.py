@@ -28,6 +28,9 @@ class IssueInbox(Protocol):
     def post_comment(self, repository: str, issue_num: str, text: str) -> Result:
         ...
 
+    def close_issue(self, repository: str, issue_num: str) -> Result:
+        ...
+
 class AgentRunner(Protocol):
 
     def __call__(self,
