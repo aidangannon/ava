@@ -11,5 +11,5 @@ SEARCHING → PENDING — issue found but agent needs context from the user befo
 SEARCHING → REVIEW — agent completed work and raised a PR
 PENDING → PENDING — more input needed, still waiting
 PENDING → REVIEW — context provided, agent resumes and updates/raises PR
-REVIEW → PENDING — PR has comments that need to be addressed
+REVIEW → REVIEW — PR has comments that need to be addressed
 REVIEW → DONE — PR approved, work complete
