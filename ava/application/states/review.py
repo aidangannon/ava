@@ -61,5 +61,8 @@ def run(config: Config) -> None:
     if not stdout:
         return
 
+    push_result = ports.push_branch(config.repos_dest, history.issue)
+    if push_result.has_failed():
+        raise Exception(push_result.msg)
+
     common.handle(config, history.issue, stdout)
-    common.handle_reply(config, history.issue, stdout)

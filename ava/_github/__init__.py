@@ -89,20 +89,6 @@ class GithubReviewInbox:
         return TypeOk[str]("open")
 
     def create_pr(self, repository: str, issue_num: str, repo_path: str, title: str, body: str) -> Result:
-        check = subprocess.run(
-            ["git", "show-ref", "--verify", f"refs/heads/{issue_num}"],
-            cwd=repo_path,
-            capture_output=True
-        )
-        if check.returncode != 0:
-            return Error(f"Branch '{issue_num}' does not exist locally — Ava must create and commit to it before raising a PR")
-
-        subprocess.run(
-            ["git", "push", "origin", issue_num],
-            cwd=repo_path,
-            check=True
-        )
-
         try:
             repo = _get_client().get_repo(full_name_or_id=repository)
         except UnknownObjectException:
@@ -131,6 +117,19 @@ class GithubReviewInbox:
 
 github_issue_inbox = GithubIssueInbox()
 github_review_inbox = GithubReviewInbox()
+
+
+def push_branch(repo_path: str, branch: str) -> Result:
+    check = subprocess.run(
+        ["git", "show-ref", "--verify", f"refs/heads/{branch}"],
+        cwd=repo_path,
+        capture_output=True
+    )
+    if check.returncode != 0:
+        return Error(f"Branch '{branch}' does not exist locally — Ava must create and commit to it before raising a PR")
+
+    subprocess.run(["git", "push", "origin", branch], cwd=repo_path, check=True)
+    return Ok()
 
 
 def clone_github_repo(repo_full_name: str, dest: str) -> Result:

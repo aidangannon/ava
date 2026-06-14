@@ -41,6 +41,11 @@ class RepoCloner(Protocol):
     def __call__(self, repo_full_name: str, dest: str) -> Result:
         ...
 
+class BranchPusher(Protocol):
+
+    def __call__(self, repo_path: str, branch: str) -> Result:
+        ...
+
 class ConfigRepository(Protocol):
 
     def get_active_history(self) -> TypeResult[History]:
@@ -66,3 +71,4 @@ review_inbox: ReviewInbox
 run_agent: AgentRunner
 config_repository: ConfigRepository
 clone_repo: RepoCloner
+push_branch: BranchPusher
