@@ -1,0 +1,13 @@
+services:
+  ava:
+    build: .
+    image: ava:latest
+    volumes:
+      - ./ava:/app/ava
+      - ava-data:/app/data
+    stdin_open: true
+    tty: true
+    command: /bin/sh
+
+volumes:
+  ava-data:
