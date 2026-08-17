@@ -11,7 +11,6 @@ from ava import _github
 def setup_ports() -> None:
     ports.issue_inbox = _github.github_issue_inbox
     ports.review_inbox = _github.github_review_inbox
-    ports.push_branch = _github.push_branch
     ports.clone_repo = _github.clone_github_repo
     ports.config_repository = file_config.file_config_repository
     ports.run_agent = claude.run_claude

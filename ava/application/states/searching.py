@@ -25,7 +25,7 @@ def run(config: Config) -> None:
     else:
         logging.logger.info(f"repo '{config.repos_dest}' is already cloned")
 
-    basic_prompt = f"Repo:{config.repo}\nRepoPath:{config.repos_dest}\nIssue:{issue}\nAuthorForCommits:{config.manager_email}\nPrUp:False"
+    basic_prompt = f"Repo:{config.repo}\nRepoPath:{config.repos_dest}\nIssue:{issue}\nAuthorForCommits:{config.manager_email}"
 
     run_result = ports \
         .run_agent(

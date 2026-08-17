@@ -1,57 +1,57 @@
 from ava.application.states import common
-from ava.application import states
 from ava.crosscutting.config import Config
 from ava.crosscutting import logging
 from ava.application import ports
 
 
+def _describe_event(config: Config, history) -> str | None:
+    """
+    REVIEW is event-driven: only invoke the agent when something on the
+    PR or issue actually changed. The agent decides what to do about it
+    (address + resolve comments, merge + close) via the GitHub MCP/CLI.
+    """
+    pr_status_result = ports.review_inbox.get_pr_status(
+        repository=history.repository, issue_num=history.issue
+    )
+
+    if not pr_status_result.has_failed():
+        pr_status = pr_status_result.unwrap()
+
+        if pr_status.approved:
+            return "The PR has been approved. Merge it, close the issue, and confirm."
+
+        if pr_status.unresolved_comments > 0:
+            return f"The PR has {pr_status.unresolved_comments} unresolved review comment(s). Address them and resolve each thread once done."
+    else:
+        logging.logger.warning(pr_status_result.msg)
+
+    reply_result = ports.issue_inbox.get_latest_comment_by(
+        repository=config.repo,
+        issue_num=history.issue,
+        user=config.manager_username
+    )
+
+    if not reply_result.has_failed():
+        return f"New comment on the issue from {config.manager_username}: {reply_result.unwrap()}"
+
+    return None
+
+
 def run(config: Config) -> None:
     history = ports.config_repository.get_active_history().unwrap()
-    reply = None
 
-    pr_status = ports \
-        .review_inbox \
-        .get_latest_pr_status(repository=history.repository, issue_num=history.issue) \
-        .unwrap()
-
-    if pr_status == "ready_to_merge":
-        logging.logger.info("Task complete")
-
-        ports.review_inbox.merge(repository=history.repository, issue_num=history.issue).throw_if_failed()
-        ports.issue_inbox.close_issue(repository=history.repository, issue_num=history.issue).throw_if_failed()
-        ports.config_repository.clear_history().throw_if_failed()
-
+    event = _describe_event(config, history)
+    if event is None:
+        logging.logger.info("No new activity on the PR or issue, waiting")
         return
 
-    reply_result = ports \
-        .issue_inbox \
-        .get_latest_comment_by(
-            repository=config.repo,
-            issue_num=history.issue,
-            user=config.manager_username
-        )
-
-    if reply_result.has_failed():
-        logging.logger.warning(reply_result.msg)
-        logging.logger.info(f"Waiting for reply for '{config.manager_username}'")
-
-        return
-
-    reply = reply_result.unwrap()
-
-    if "[Review]" not in reply:
-        logging.logger.warning("There is a message but has no [Review] tag")
-        logging.logger.info(f"Waiting for reply for '{config.manager_username}'")
-
-        return
-
-    basic_prompt = f"Repo:{config.repo}\nRepoPath:{config.repos_dest}\nIssue:{history.issue}\nAuthorForCommits:{config.manager_email}\nPrUp:True\nReply: {reply}"
+    basic_prompt = f"Repo:{config.repo}\nRepoPath:{config.repos_dest}\nIssue:{history.issue}\nAuthorForCommits:{config.manager_email}\nReviewEvent:{event}"
 
     run_result = ports \
         .run_agent(
             skill="ava",
             prompt=basic_prompt,
-            history=None if history is None else history.content
+            history=history.content
         )
 
     if run_result.has_failed():
@@ -61,7 +61,5 @@ def run(config: Config) -> None:
     stdout = run_result.unwrap()
     if not stdout:
         return
-
-    ports.push_branch(config.repos_dest, history.issue).throw_if_failed()
 
     common.handle(config, history.issue, stdout)

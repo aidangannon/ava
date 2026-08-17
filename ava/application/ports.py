@@ -1,17 +1,17 @@
 from typing import Protocol
 
-from ava.application.model import History
+from ava.application.model import History, PrStatus
 from ava.crosscutting.result import Result, TypeResult
 
 class ReviewInbox(Protocol):
+    """
+    Read-only signals used to decide whether the REVIEW state has new
+    work to hand to the agent. Everything that changes GitHub state
+    (raising/updating PRs, replying, resolving comments, merging) is
+    done by the agent itself via the GitHub MCP/CLI, per the skill.
+    """
 
-    def get_latest_pr_status(self, repository: str, issue_num: str) -> TypeResult[str]:
-        ...
-
-    def create_pr(self, repository: str, issue_num: str, repo_path: str, title: str, body: str) -> Result:
-        ...
-
-    def merge(self, repository: str, issue_num: str) -> Result:
+    def get_pr_status(self, repository: str, issue_num: str) -> TypeResult[PrStatus]:
         ...
 
 class IssueInbox(Protocol):
@@ -25,12 +25,6 @@ class IssueInbox(Protocol):
         user: str) -> TypeResult[str]:
         ...
 
-    def post_comment(self, repository: str, issue_num: str, text: str) -> Result:
-        ...
-
-    def close_issue(self, repository: str, issue_num: str) -> Result:
-        ...
-
 class AgentRunner(Protocol):
 
     def __call__(self,
@@ -42,11 +36,6 @@ class AgentRunner(Protocol):
 class RepoCloner(Protocol):
 
     def __call__(self, repo_full_name: str, dest: str) -> Result:
-        ...
-
-class BranchPusher(Protocol):
-
-    def __call__(self, repo_path: str, branch: str) -> Result:
         ...
 
 class ConfigRepository(Protocol):
@@ -74,4 +63,3 @@ review_inbox: ReviewInbox
 run_agent: AgentRunner
 config_repository: ConfigRepository
 clone_repo: RepoCloner
-push_branch: BranchPusher

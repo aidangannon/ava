@@ -1,5 +1,4 @@
 from ava.application.states import common
-from ava.application import states
 from ava.crosscutting.config import Config
 from ava.crosscutting import logging
 from ava.application import ports
@@ -25,7 +24,7 @@ def run(config: Config) -> None:
 
     reply = reply_result.unwrap()
 
-    basic_prompt = f"Repo:{config.repo}\nRepoPath:{config.repos_dest}\nIssue:{history.issue}\nAuthorForCommits:{config.manager_email}\nPrUp:False\nReply: {reply}"
+    basic_prompt = f"Repo:{config.repo}\nRepoPath:{config.repos_dest}\nIssue:{history.issue}\nAuthorForCommits:{config.manager_email}\nReply:{reply}"
 
     run_result = ports \
         .run_agent(

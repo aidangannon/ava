@@ -1,14 +1,18 @@
-from ava.crosscutting.result import Error, Ok, Result
+from ava.crosscutting.result import Ok, Result
 from ava.application.model import History
 from ava.crosscutting.config import Config
 from ava.application import ports, states
 
 HISTORY = "[HISTORY]"
-REPLY = "[REPLY]"
-PR_TITLE = "[PR-TITLE]"
-PR_DESCRIPTION = "[PR-DESCRIPTION]"
+STATUS = "[STATUS]"
 
-ALL_TAGS = [HISTORY, REPLY, PR_TITLE, PR_DESCRIPTION]
+ALL_TAGS = [HISTORY, STATUS]
+
+NEEDS_INPUT = "NEEDS_INPUT"
+IN_REVIEW = "IN_REVIEW"
+DONE = "DONE"
+
+VALID_STATUSES = {NEEDS_INPUT, IN_REVIEW, DONE}
 
 
 def _extract(stdout: str, tag: str) -> str | None:
@@ -22,6 +26,12 @@ def _extract(stdout: str, tag: str) -> str | None:
 
 
 def handle(config: Config, issue: str, stdout: str) -> Result:
+    """
+    The agent owns every GitHub write (PRs, replies, resolving comments,
+    merging, closing) via the GitHub MCP/CLI, declared in the skill.
+    All that's left for the automation layer is: cache the decision
+    history to disk, and move the state machine on based on [STATUS].
+    """
     history = _extract(stdout, HISTORY)
     if not history:
         raise Exception(f"Invalid stdout: [HISTORY] missing or empty\n{stdout}")
@@ -30,29 +40,16 @@ def handle(config: Config, issue: str, stdout: str) -> Result:
         History(issue=issue, repository=config.repo, content=history)
     )
 
-    reply = _extract(stdout, REPLY)
-    if reply:
-        ports.issue_inbox.post_comment(config.repo, issue, reply)
-        if ports.config_repository.get_state().unwrap() == states.SEARCHING:
-            ports.config_repository.set_state(states.PENDING)
-        return Ok()
+    status = _extract(stdout, STATUS)
+    if status not in VALID_STATUSES:
+        raise Exception(f"Invalid stdout: [STATUS] missing or not one of {sorted(VALID_STATUSES)}\n{stdout}")
 
-    pr_title = _extract(stdout, PR_TITLE)
-    pr_description = _extract(stdout, PR_DESCRIPTION)
-
-    if pr_title and not pr_description:
-        raise Exception(f"Invalid stdout: [PR-TITLE] without [PR-DESCRIPTION]\n{stdout}")
-    if pr_description and not pr_title:
-        raise Exception(f"Invalid stdout: [PR-DESCRIPTION] without [PR-TITLE]\n{stdout}")
-
-    if pr_title and pr_description:
-        ports.review_inbox.create_pr(
-            repository=config.repo,
-            issue_num=issue,
-            repo_path=config.repos_dest,
-            title=pr_title,
-            body=pr_description
-        )
-        ports.config_repository.set_state(states.REVIEW)
+    if status == DONE:
+        ports.config_repository.clear_history().throw_if_failed()
+        ports.config_repository.set_state(states.SEARCHING).throw_if_failed()
+    elif status == NEEDS_INPUT:
+        ports.config_repository.set_state(states.PENDING).throw_if_failed()
+    else:
+        ports.config_repository.set_state(states.REVIEW).throw_if_failed()
 
     return Ok()
