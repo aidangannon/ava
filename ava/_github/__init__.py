@@ -32,31 +32,6 @@ query($owner: String!, $name: String!, $number: Int!) {
 """
 
 
-def _unresolved_review_thread_count(repository: str, pr_number: int) -> int:
-    """
-    Whether a review thread is resolved isn't exposed by the REST API,
-    only GraphQL — shell out to `gh` (already required for the skill's
-    own PR interactions) rather than hand-rolling a GraphQL client.
-    """
-    owner, name = repository.split("/", 1)
-    config = ports.config_repository.get_config().unwrap()
-
-    result = subprocess.run(
-        ["gh", "api", "graphql",
-         "-f", f"query={_UNRESOLVED_THREADS_QUERY}",
-         "-F", f"owner={owner}",
-         "-F", f"name={name}",
-         "-F", f"number={pr_number}"],
-        capture_output=True,
-        text=True,
-        env={**os.environ, "GH_TOKEN": config["github_token"]}
-    )
-    result.check_returncode()
-
-    threads = json.loads(result.stdout)["data"]["repository"]["pullRequest"]["reviewThreads"]["nodes"]
-    return sum(1 for thread in threads if not thread["isResolved"])
-
-
 @dataclass(slots=True)
 class GithubIssueInbox:
 
@@ -115,7 +90,21 @@ class GithubReviewInbox:
             and reviews[-1].user.login == config["manager_username"] \
             and reviews[-1].state == "APPROVED"
 
-        unresolved = _unresolved_review_thread_count(repository, pr.number)
+        owner, name = repository.split("/", 1)
+        threads_result = subprocess.run(
+            ["gh", "api", "graphql",
+             "-f", f"query={_UNRESOLVED_THREADS_QUERY}",
+             "-F", f"owner={owner}",
+             "-F", f"name={name}",
+             "-F", f"number={pr.number}"],
+            capture_output=True,
+            text=True,
+            env={**os.environ, "GH_TOKEN": config["github_token"]}
+        )
+        threads_result.check_returncode()
+
+        threads = json.loads(threads_result.stdout)["data"]["repository"]["pullRequest"]["reviewThreads"]["nodes"]
+        unresolved = sum(1 for thread in threads if not thread["isResolved"])
 
         return TypeOk[PrStatus](PrStatus(approved=approved, unresolved_comments=unresolved))
 

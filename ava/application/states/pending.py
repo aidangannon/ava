@@ -6,7 +6,6 @@ from ava.application import ports
 
 def run(config: Config) -> None:
     history = ports.config_repository.get_active_history().unwrap()
-    reply = None
 
     reply_result = ports \
         .issue_inbox \
@@ -22,9 +21,7 @@ def run(config: Config) -> None:
 
         return
 
-    reply = reply_result.unwrap()
-
-    basic_prompt = f"Repo:{config.repo}\nRepoPath:{config.repos_dest}\nIssue:{history.issue}\nAuthorForCommits:{config.manager_email}\nReply:{reply}"
+    basic_prompt = f"Repo:{config.repo}\nRepoPath:{config.repos_dest}\nIssue:{history.issue}\nAuthorForCommits:{config.manager_email}\nReplyEvent:{config.manager_username} replied on the issue — go read it via gh/MCP and continue"
 
     run_result = ports \
         .run_agent(

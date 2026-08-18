@@ -8,7 +8,7 @@ class History:
     content: str
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, frozen=True)
 class PrStatus:
     approved: bool
     unresolved_comments: int
