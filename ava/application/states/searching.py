@@ -1,8 +1,11 @@
-from ava.application.states import common
+from ava.application.stdout import parse
 from ava.crosscutting.config import Config
 from ava.crosscutting import logging
 from pathlib import Path
-from ava.application import ports
+from ava.application import ports, states
+from ava.application.model import History
+
+VALID_STATES = {states.PENDING, states.REVIEW}
 
 
 def run(config: Config) -> None:
@@ -37,5 +40,12 @@ def run(config: Config) -> None:
     stdout = run_result.unwrap()
     if not stdout:
         raise Exception("Stdout from agent does not exist")
-    
-    common.handle(config, issue, stdout)
+
+    history, target_state = parse(stdout)
+    if target_state not in VALID_STATES:
+        raise Exception(f"Invalid transition from SEARCHING to {target_state}")
+
+    ports.config_repository.add_history(
+        History(issue=issue, repository=config.repo, content=history)
+    )
+    ports.config_repository.set_state(target_state).throw_if_failed()

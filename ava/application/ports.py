@@ -4,12 +4,6 @@ from ava.application.model import History, PrStatus
 from ava.crosscutting.result import Result, TypeResult
 
 class ReviewInbox(Protocol):
-    """
-    Read-only signals used to decide whether the REVIEW state has new
-    work to hand to the agent. Everything that changes GitHub state
-    (raising/updating PRs, replying, resolving comments, merging) is
-    done by the agent itself via the GitHub MCP/CLI, per the skill.
-    """
 
     def get_pr_status(self, repository: str, issue_num: str) -> TypeResult[PrStatus]:
         ...

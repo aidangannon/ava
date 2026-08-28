@@ -1,7 +1,10 @@
-from ava.application.states import common
+from ava.application.stdout import parse
 from ava.crosscutting.config import Config
 from ava.crosscutting import logging
-from ava.application import ports
+from ava.application import ports, states
+from ava.application.model import History
+
+VALID_STATES = {states.PENDING, states.REVIEW}
 
 
 def run(config: Config) -> None:
@@ -27,11 +30,18 @@ def run(config: Config) -> None:
         .run_agent(
             skill="ava",
             prompt=basic_prompt,
-            history=None if history is None else history.content
+            history=history.content
         )
 
     stdout = run_result.unwrap()
     if not stdout:
         raise Exception("Stdout from agent does not exist")
 
-    common.handle(config, history.issue, stdout)
+    new_history, target_state = parse(stdout)
+    if target_state not in VALID_STATES:
+        raise Exception(f"Invalid transition from PENDING to {target_state}")
+
+    ports.config_repository.add_history(
+        History(issue=history.issue, repository=config.repo, content=new_history)
+    )
+    ports.config_repository.set_state(target_state).throw_if_failed()
