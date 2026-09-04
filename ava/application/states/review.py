@@ -1,57 +1,38 @@
-from ava.application.states import common
-from ava.application import states
+from ava.application.stdout import parse
 from ava.crosscutting.config import Config
 from ava.crosscutting import logging
-from ava.application import ports
+from ava.application import ports, states
+from ava.application.model import History
+
+VALID_STATES = {states.REVIEW, states.PENDING, states.SEARCHING}
 
 
 def run(config: Config) -> None:
     history = ports.config_repository.get_active_history().unwrap()
-    reply = None
 
-    pr_status = ports \
-        .review_inbox \
-        .get_latest_pr_status(repository=history.repository, issue_num=history.issue) \
-        .unwrap()
-
-    if pr_status == "ready_to_merge":
-        logging.logger.info("Task complete")
-
-        ports.review_inbox.merge(repository=history.repository, issue_num=history.issue).throw_if_failed()
-        ports.issue_inbox.close_issue(repository=history.repository, issue_num=history.issue).throw_if_failed()
-        ports.config_repository.clear_history().throw_if_failed()
-
+    pr_status_result = ports.review_inbox.get_pr_status(
+        repository=history.repository, issue_num=history.issue
+    )
+    if pr_status_result.has_failed():
+        logging.logger.warning(pr_status_result.msg)
         return
 
-    reply_result = ports \
-        .issue_inbox \
-        .get_latest_comment_by(
-            repository=config.repo,
-            issue_num=history.issue,
-            user=config.manager_username
-        )
-
-    if reply_result.has_failed():
-        logging.logger.warning(reply_result.msg)
-        logging.logger.info(f"Waiting for reply for '{config.manager_username}'")
-
+    pr_status = pr_status_result.unwrap()
+    if pr_status.approved:
+        event = "The PR has been approved. Merge it, close the issue, and confirm."
+    elif pr_status.unresolved_comments > 0:
+        event = f"The PR has {pr_status.unresolved_comments} unresolved review comment(s). Address them and reply to each — the repo owner resolves the threads themselves, not you."
+    else:
+        logging.logger.info("No new activity on the PR, waiting")
         return
 
-    reply = reply_result.unwrap()
-
-    if "[Review]" not in reply:
-        logging.logger.warning("There is a message but has no [Review] tag")
-        logging.logger.info(f"Waiting for reply for '{config.manager_username}'")
-
-        return
-
-    basic_prompt = f"Repo:{config.repo}\nRepoPath:{config.repos_dest}\nIssue:{history.issue}\nAuthorForCommits:{config.manager_email}\nPrUp:True\nReply: {reply}"
+    basic_prompt = f"Repo:{config.repo}\nRepoPath:{config.repos_dest}\nIssue:{history.issue}\nAuthorForCommits:{config.manager_email}\nReviewEvent:{event}"
 
     run_result = ports \
         .run_agent(
             skill="ava",
             prompt=basic_prompt,
-            history=None if history is None else history.content
+            history=history.content
         )
 
     if run_result.has_failed():
@@ -62,6 +43,15 @@ def run(config: Config) -> None:
     if not stdout:
         return
 
-    ports.push_branch(config.repos_dest, history.issue).throw_if_failed()
+    new_history, target_state = parse(stdout)
+    if target_state not in VALID_STATES:
+        raise Exception(f"Invalid transition from REVIEW to {target_state}")
 
-    common.handle(config, history.issue, stdout)
+    if target_state == states.SEARCHING:
+        ports.config_repository.clear_history().throw_if_failed()
+    else:
+        ports.config_repository.add_history(
+            History(issue=history.issue, repository=config.repo, content=new_history)
+        )
+
+    ports.config_repository.set_state(target_state).throw_if_failed()

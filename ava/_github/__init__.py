@@ -1,10 +1,12 @@
-from ava.crosscutting import logging
+import json
+import os
 import subprocess
 from dataclasses import dataclass
 
 from github import Github, UnknownObjectException
 
 from ava.application import ports
+from ava.application.model import PrStatus
 from ava.crosscutting.result import Ok, Error, Result, TypeOk, TypeError, TypeResult
 
 _client: Github | None = None
@@ -15,6 +17,19 @@ def _get_client() -> Github:
         config = ports.config_repository.get_config().unwrap()
         _client = Github(config["github_token"])
     return _client
+
+
+_UNRESOLVED_THREADS_QUERY = """
+query($owner: String!, $name: String!, $number: Int!) {
+  repository(owner: $owner, name: $name) {
+    pullRequest(number: $number) {
+      reviewThreads(first: 100) {
+        nodes { isResolved }
+      }
+    }
+  }
+}
+"""
 
 
 @dataclass(slots=True)
@@ -53,95 +68,48 @@ class GithubIssueInbox:
 
         return TypeError[str](f"Last comment was by '{last_comment.user.login}' not by '{user}'")
 
-    def post_comment(self, repository: str, issue_num: str, text: str) -> Result:
-        try:
-            repo = _get_client().get_repo(full_name_or_id=repository)
-        except UnknownObjectException:
-            return Error(f"Repository '{repository}' not found")
-
-        try:
-            issue = repo.get_issue(number=int(issue_num))
-        except UnknownObjectException:
-            return Error(f"Issue #{issue_num} not found")
-
-        issue.create_comment(text)
-        return Ok()
-
-    def close_issue(self, repository: str, issue_num: str) -> Result:
-        try:
-            repo = _get_client().get_repo(full_name_or_id=repository)
-        except UnknownObjectException:
-            return Error(f"Repository '{repository}' not found")
-
-        try:
-            issue = repo.get_issue(number=int(issue_num))
-        except UnknownObjectException:
-            return Error(f"Issue #{issue_num} not found")
-
-        issue.edit(state="closed")
-        return Ok()
-
 
 @dataclass(slots=True)
 class GithubReviewInbox:
 
-    def get_latest_pr_status(self, repository: str, issue_num: str) -> TypeResult[str]:
+    def get_pr_status(self, repository: str, issue_num: str) -> TypeResult[PrStatus]:
         try:
             repo = _get_client().get_repo(full_name_or_id=repository)
         except UnknownObjectException:
-            return TypeError[str](f"Repository '{repository}' not found")
+            return TypeError[PrStatus](f"Repository '{repository}' not found")
 
         prs = [pr for pr in repo.get_pulls(state="open") if pr.head.ref == issue_num]
         if not prs:
-            return TypeError[str](f"No open PR found for issue #{issue_num}")
+            return TypeError[PrStatus](f"No open PR found for issue #{issue_num}")
 
         pr = prs[0]
-        if pr.mergeable:
-            return TypeOk[str]("ready_to_merge")
-        return TypeOk[str]("open")
+        config = ports.config_repository.get_config().unwrap()
 
-    def create_pr(self, repository: str, issue_num: str, repo_path: str, title: str, body: str) -> Result:
-        try:
-            repo = _get_client().get_repo(full_name_or_id=repository)
-        except UnknownObjectException:
-            return Error(f"Repository '{repository}' not found")
+        reviews = list(pr.get_reviews())
+        approved = bool(reviews) \
+            and reviews[-1].user.login == config["manager_username"] \
+            and reviews[-1].state == "APPROVED"
 
-        repo.create_pull(
-            title=title,
-            body=body,
-            head=issue_num,
-            base=repo.default_branch
+        owner, name = repository.split("/", 1)
+        threads_result = subprocess.run(
+            ["gh", "api", "graphql",
+             "-f", f"query={_UNRESOLVED_THREADS_QUERY}",
+             "-F", f"owner={owner}",
+             "-F", f"name={name}",
+             "-F", f"number={pr.number}"],
+            capture_output=True,
+            text=True,
+            env={**os.environ, "GH_TOKEN": config["github_token"]}
         )
-        return Ok()
+        threads_result.check_returncode()
 
-    def merge(self, repository: str, issue_num: str) -> Result:
-        try:
-            repo = _get_client().get_repo(full_name_or_id=repository)
-        except UnknownObjectException:
-            return Error(f"Repository '{repository}' not found")
+        threads = json.loads(threads_result.stdout)["data"]["repository"]["pullRequest"]["reviewThreads"]["nodes"]
+        unresolved = sum(1 for thread in threads if not thread["isResolved"])
 
-        prs = [pr for pr in repo.get_pulls(state="open") if pr.head.ref == issue_num]
-        if not prs:
-            return Error(f"No open PR found for issue #{issue_num}")
-
-        prs[0].merge()
-        return Ok()
+        return TypeOk[PrStatus](PrStatus(approved=approved, unresolved_comments=unresolved))
 
 github_issue_inbox = GithubIssueInbox()
 github_review_inbox = GithubReviewInbox()
-
-
-def push_branch(repo_path: str, branch: str) -> Result:
-    check = subprocess.run(
-        ["git", "show-ref", "--verify", f"refs/heads/{branch}"],
-        cwd=repo_path,
-        capture_output=True
-    )
-    if check.returncode != 0:
-        return Error(f"Branch '{branch}' does not exist locally — Ava must create and commit to it before raising a PR")
-
-    subprocess.run(["git", "push", "origin", branch], cwd=repo_path, check=True)
-    return Ok()
 
 
 def clone_github_repo(repo_full_name: str, dest: str) -> Result:
